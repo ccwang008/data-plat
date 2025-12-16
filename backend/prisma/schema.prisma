@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户模型
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      String   @default("普通用户")
+  status    String   @default("启用")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// 数据源模型
+model DataSource {
+  id         String   @id @default(uuid())
+  name       String
+  type       String   // MySQL, PostgreSQL, Oracle, etc.
+  host       String
+  port       Int
+  database   String
+  username   String?
+  password   String?
+  status     String   @default("正常")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("data_sources")
+}
+
+// 数据交换任务模型
+model DataExchangeTask {
+  id          String   @id @default(uuid())
+  name        String
+  source      String
+  target      String
+  status      String   @default("已停止")
+  schedule    String
+  lastRunTime String?
+  nextRunTime String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("data_exchange_tasks")
+}
+
+// ETL流程模型
+model EtlFlow {
+  id        String   @id @default(uuid())
+  name      String
+  nodes     Json     // 存储节点数据
+  edges     Json     // 存储边数据
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("etl_flows")
+}
+
+// 任务调度模型
+model ScheduledTask {
+  id          String   @id @default(uuid())
+  name        String
+  type        String
+  cron        String
+  status      String   @default("启用")
+  lastRunTime String?
+  nextRunTime String?
+  runCount    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("scheduled_tasks")
+}
+
+// 角色模型
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String
+  permissions Json     // 存储权限数组
+  userCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
+}
+
+// 数据采集任务模型
+model DataCollectionTask {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // API, 文件, 数据库, 消息队列
+  source      String
+  status      String   @default("已停止")
+  schedule    String
+  lastRunTime String?
+  records     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("data_collection_tasks")
+}
+
+// 元数据管理模型
+model Metadata {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // 表, 字段, 视图, 函数
+  database    String?
+  schema      String?
+  tableName   String?
+  columnName  String?
+  dataType    String?
+  description String?
+  tags        Json?    // 标签数组
+  owner       String?
+  status      String   @default("启用")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("metadata")
+}
+
+// 数据质检规则模型
+model DataQualityRule {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // 完整性, 准确性, 一致性, 及时性, 唯一性
+  dataSource  String
+  tableName   String
+  columnName  String?
+  rule        String   // 规则表达式
+  threshold   Float?   // 阈值
+  status      String   @default("启用")
+  lastRunTime DateTime?
+  passRate    Float?   // 通过率
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  results     DataQualityResult[]
+
+  @@map("data_quality_rules")
+}
+
+// 数据质检结果模型
+model DataQualityResult {
+  id          String   @id @default(uuid())
+  ruleId      String
+  rule        DataQualityRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  totalRows   Int
+  passRows    Int
+  failRows    Int
+  passRate    Float
+  details     Json?    // 详细结果
+  runTime     DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@map("data_quality_results")
+}
+
+// 数据模型模型
+model DataModel {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // 概念模型, 逻辑模型, 物理模型
+  description String?
+  version     String   @default("1.0")
+  status      String   @default("草稿")
+  content     Json     // 模型内容（表结构、关系等）
+  tags        Json?    // 标签数组
+  owner       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  relations   DataModelRelation[]
+
+  @@map("data_models")
+}
+
+// 数据模型关系模型
+model DataModelRelation {
+  id          String   @id @default(uuid())
+  modelId     String
+  model       DataModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  sourceTable String
+  targetTable String
+  relationType String // 一对一, 一对多, 多对多
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@map("data_model_relations")
+}
