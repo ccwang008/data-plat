@@ -10,6 +10,62 @@
 - JWT 认证
 - bcryptjs 密码加密
 
+## 新增：调度/任务流（最小可用，参考 DolphinScheduler 思路）
+
+已加入 DAG 定义与实例模型，方便后续扩展执行器、补数据、告警。
+
+### 数据模型（新增）
+- TaskFlow / TaskNode / TaskEdge
+- TaskInstance / TaskNodeInstance
+
+### 新增 API（最小集）
+- `POST /api/task/flows` 保存流程（含节点、边，全量替换）
+- `GET  /api/task/flows` 流程列表
+- `GET  /api/task/flows/:id` 流程详情（含节点、边）
+- `PATCH /api/task/flows/:id/status` 启用/暂停（active/paused）
+- `POST /api/task/flows/:id/run` 生成一次运行实例与节点实例（占位，未接入执行器）
+- `GET  /api/task/flows/:id/instances` 实例列表
+- `GET  /api/task/instances/:id` 实例详情（含节点实例）
+
+### 使用提示
+1. 先迁移数据库并启动服务：
+   ```bash
+   npm run db:generate
+   npm run db:migrate
+   npm run dev
+   ```
+2. 保存流程示例：
+   ```json
+   {
+     "name": "示例流程",
+     "cron": "0 0 * * *",
+     "status": "paused",
+     "nodes": [
+       { "id": "n1", "name": "Shell1", "type": "shell", "config": { "command": "echo hello" } },
+       { "id": "n2", "name": "HTTP", "type": "http", "config": { "url": "https://example.com" } }
+     ],
+     "edges": [
+       { "sourceId": "n1", "targetId": "n2" }
+     ]
+   }
+   ```
+   未提供节点 id 时会自动生成 UUID，但 `edges` 的 sourceId/targetId 必须指向有效节点。
+3. 手动触发（仅创建实例，占位）：
+   ```
+   POST /api/task/flows/:id/run
+   ```
+4. 查询：
+   ```
+   GET /api/task/flows/:id/instances
+   GET /api/task/instances/:id
+   ```
+
+### 后续可扩展
+- 节点执行器（按依赖拓扑并发调度，支持超时/重试）
+- 补数据/失败重跑
+- 告警/日志收集
+- 前端调度配置与实例可视化
+
 ## 数据库设置
 
 ### 1. 配置数据库连接

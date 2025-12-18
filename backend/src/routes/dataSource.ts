@@ -38,21 +38,61 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
 // 创建数据源
 router.post('/', authenticate, async (req: AuthRequest, res) => {
   try {
-    const { name, type, host, port, database, username, password } = req.body;
+    const {
+      name,
+      category = 'db',
+      type,
+      host,
+      port,
+      database,
+      username,
+      password,
+      filePath,
+      fileFormat,
+      apiUrl,
+      apiMethod,
+      headers,
+      body,
+      config,
+    } = req.body;
 
-    if (!name || !type || !host || !port || !database) {
-      return errorResponse(res, '缺少必要参数', 400);
+    if (!name || !type) {
+      return errorResponse(res, '缺少必要参数: name 或 type', 400);
+    }
+
+    if (category === 'db') {
+      if (!host || !port || !database) {
+        return errorResponse(res, '数据库源需提供 host/port/database', 400);
+      }
+    } else if (category === 'file') {
+      if (!filePath || !fileFormat) {
+        return errorResponse(res, '文件源需提供 filePath/fileFormat', 400);
+      }
+    } else if (category === 'api') {
+      if (!apiUrl || !apiMethod) {
+        return errorResponse(res, 'API 源需提供 apiUrl/apiMethod', 400);
+      }
+    } else {
+      return errorResponse(res, 'category 仅支持 db/file/api', 400);
     }
 
     const newDataSource = await prisma.dataSource.create({
       data: {
         name,
+        category,
         type,
-        host,
-        port: parseInt(port),
-        database,
-        username,
-        password,
+        host: host || null,
+        port: port ? parseInt(port) : null,
+        database: database || null,
+        username: username ?? null,
+        password: password ?? null,
+        filePath: filePath || null,
+        fileFormat: fileFormat || null,
+        apiUrl: apiUrl || null,
+        apiMethod: apiMethod || null,
+        headers: headers || null,
+        body: body || null,
+        config: config || null,
         status: '正常',
       },
     });
@@ -67,7 +107,24 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const { name, type, host, port, database, username, password, status } = req.body;
+    const {
+      name,
+      category,
+      type,
+      host,
+      port,
+      database,
+      username,
+      password,
+      status,
+      filePath,
+      fileFormat,
+      apiUrl,
+      apiMethod,
+      headers,
+      body,
+      config,
+    } = req.body;
 
     const dataSource = await prisma.dataSource.findUnique({
       where: { id },
@@ -81,13 +138,21 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
       where: { id },
       data: {
         ...(name && { name }),
+        ...(category && { category }),
         ...(type && { type }),
-        ...(host && { host }),
-        ...(port && { port: parseInt(port) }),
-        ...(database && { database }),
+        ...(host !== undefined && { host }),
+        ...(port !== undefined && { port: port ? parseInt(port) : null }),
+        ...(database !== undefined && { database }),
         ...(username !== undefined && { username }),
         ...(password !== undefined && { password }),
         ...(status && { status }),
+        ...(filePath !== undefined && { filePath }),
+        ...(fileFormat !== undefined && { fileFormat }),
+        ...(apiUrl !== undefined && { apiUrl }),
+        ...(apiMethod !== undefined && { apiMethod }),
+        ...(headers !== undefined && { headers }),
+        ...(body !== undefined && { body }),
+        ...(config !== undefined && { config }),
       },
     });
 

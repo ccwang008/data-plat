@@ -28,13 +28,21 @@ model User {
 model DataSource {
   id         String   @id @default(uuid())
   name       String
-  type       String   // MySQL, PostgreSQL, Oracle, etc.
-  host       String
-  port       Int
-  database   String
+  category   String   @default("db") // db | file | api
+  type       String                // MySQL, PostgreSQL, Oracle, etc. / 文件格式 / API 类型
+  host       String?
+  port       Int?
+  database   String?
   username   String?
   password   String?
+  filePath   String?
+  fileFormat String?
+  apiUrl     String?
+  apiMethod  String?
+  headers    Json?
+  body       Json?
   status     String   @default("正常")
+  config     Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -84,6 +92,108 @@ model ScheduledTask {
   updatedAt   DateTime @updatedAt
 
   @@map("scheduled_tasks")
+}
+
+/// 调度流程（参考 DAG）
+model TaskFlow {
+  id             String    @id @default(uuid())
+  name           String
+  description    String?
+  cron           String?
+  timezone       String?   @default("Asia/Shanghai")
+  status         String    @default("paused") // paused | active
+  maxConcurrency Int       @default(1)
+  owner          String?
+  alertChannels  Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  nodes      TaskNode[]
+  edges      TaskEdge[]
+  instances  TaskInstance[]
+
+  @@map("task_flows")
+}
+
+/// 流程中的节点定义
+model TaskNode {
+  id                  String    @id @default(uuid())
+  flowId              String
+  name                String
+  type                String               // shell | http | sql | subflow | datax | custom
+  config              Json?
+  resources           Json?
+  timeoutSeconds      Int       @default(0)
+  retryCount          Int       @default(0)
+  retryIntervalSeconds Int      @default(60)
+  position            Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  flow   TaskFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  edges  TaskEdge[]        @relation("NodeEdges")
+  usedBy TaskEdge[]        @relation("NodeTargets")
+  nodeInstances TaskNodeInstance[]
+
+  @@map("task_nodes")
+}
+
+/// 流程中的边（依赖）
+model TaskEdge {
+  id        String   @id @default(uuid())
+  flowId    String
+  sourceId  String
+  targetId  String
+  condition String?
+  createdAt DateTime @default(now())
+
+  flow   TaskFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  source TaskNode @relation("NodeEdges", fields: [sourceId], references: [id], onDelete: Cascade)
+  target TaskNode @relation("NodeTargets", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@map("task_edges")
+}
+
+/// 流程运行实例
+model TaskInstance {
+  id          String   @id @default(uuid())
+  flowId      String
+  status      String   @default("pending") // pending | running | success | failed | canceled
+  triggerType String   @default("manual")  // manual | cron | backfill | rerun
+  requestId   String?
+  message     String?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  flow          TaskFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  nodeInstances TaskNodeInstance[]
+
+  @@map("task_instances")
+}
+
+/// 节点运行实例
+model TaskNodeInstance {
+  id          String   @id @default(uuid())
+  instanceId  String
+  nodeId      String
+  status      String   @default("pending") // pending | running | success | failed | skipped | canceled
+  attempt     Int      @default(0)
+  message     String?
+  log         Json?
+  logPath     String?
+  nextRetryAt DateTime?
+  alertSent   Boolean  @default(false)
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  instance TaskInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  node     TaskNode     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@map("task_node_instances")
 }
 
 // 角色模型

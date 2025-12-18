@@ -11,6 +11,7 @@ import dashboardRoutes from './routes/dashboard';
 import metadataRoutes from './routes/metadata';
 import dataQualityRoutes from './routes/dataQuality';
 import dataModelRoutes from './routes/dataModel';
+import { startScheduler } from './services/scheduler';
 
 dotenv.config();
 
@@ -54,5 +55,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  startScheduler();
 });
 

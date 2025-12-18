@@ -71,6 +71,7 @@ const nodeTemplates: NodeTemplate[] = [
   { type: 'MySQL', label: 'MySQL数据源', category: 'dataSource', nodeType: 'dataSource' },
   { type: 'PostgreSQL', label: 'PostgreSQL数据源', category: 'dataSource', nodeType: 'dataSource' },
   { type: '文件', label: '文件数据源', category: 'dataSource', nodeType: 'dataSource' },
+  { type: 'API', label: 'API数据源', category: 'dataSource', nodeType: 'dataSource' },
   // 转换组件
   { type: '字段映射', label: '字段映射', category: 'transform', nodeType: 'transform' },
   { type: '数据清洗', label: '数据清洗', category: 'transform', nodeType: 'transform' },
@@ -1395,6 +1396,27 @@ const VisualETL = () => {
                   rows={3}
                   placeholder="可选: 自定义SQL查询语句"
                 />
+              </Form.Item>
+              <Divider>API 数据源（可选）</Divider>
+              <Form.Item name={['api', 'url']} label="API 地址">
+                <Input placeholder="例如: https://api.example.com/data" />
+              </Form.Item>
+              <Form.Item name={['api', 'method']} label="请求方法">
+                <Select
+                  placeholder="选择请求方法"
+                  options={[
+                    { value: 'GET', label: 'GET' },
+                    { value: 'POST', label: 'POST' },
+                    { value: 'PUT', label: 'PUT' },
+                    { value: 'DELETE', label: 'DELETE' },
+                  ]}
+                />
+              </Form.Item>
+              <Form.Item name={['api', 'headers']} label="请求头(JSON)">
+                <Input.TextArea rows={3} placeholder='例如: {"Authorization":"Bearer token"}' />
+              </Form.Item>
+              <Form.Item name={['api', 'body']} label="请求体(JSON)">
+                <Input.TextArea rows={4} placeholder='POST/PUT 时填写，例如: {"param":"value"}' />
               </Form.Item>
             </>
           )}
